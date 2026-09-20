@@ -1,0 +1,461 @@
+{
+  "info": {
+    "name": "inminutes_backend",
+    "description": "Run requests top to bottom inside a folder \u2014 each one saves the ids it creates into collection variables (host_id, participant_id, join_code, product_id) that later requests reuse.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "host_id",
+      "value": ""
+    },
+    {
+      "key": "participant_id",
+      "value": ""
+    },
+    {
+      "key": "participant2_id",
+      "value": ""
+    },
+    {
+      "key": "product_id",
+      "value": ""
+    },
+    {
+      "key": "join_code",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Users & Products",
+      "item": [
+        {
+          "name": "Create host user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice01\"\n}"
+            },
+            "url": "{{base_url}}/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('host_id', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create participant user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"bobbob1\"\n}"
+            },
+            "url": "{{base_url}}/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('participant_id', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create 2nd participant user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"carol01\"\n}"
+            },
+            "url": "{{base_url}}/users"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('participant2_id', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get user by id",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users/{{host_id}}"
+          }
+        },
+        {
+          "name": "Get products",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.data && data.data.length) pm.collectionVariables.set('product_id', data.data[0]._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get product by id",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/products/{{product_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Normal order flow",
+      "item": [
+        {
+          "name": "Get cart",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users/{{host_id}}/cart"
+          }
+        },
+        {
+          "name": "Add to cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"qty\": 2\n}"
+            },
+            "url": "{{base_url}}/users/{{host_id}}/cart"
+          }
+        },
+        {
+          "name": "Update cart item quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qty\": 4\n}"
+            },
+            "url": "{{base_url}}/users/{{host_id}}/cart/{{product_id}}"
+          }
+        },
+        {
+          "name": "Remove cart item",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/users/{{host_id}}/cart/{{product_id}}"
+          }
+        },
+        {
+          "name": "Add to cart again (for order)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"qty\": 1\n}"
+            },
+            "url": "{{base_url}}/users/{{host_id}}/cart"
+          }
+        },
+        {
+          "name": "Place normal order",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/users/{{host_id}}/orders"
+          }
+        },
+        {
+          "name": "Get order history",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users/{{host_id}}/orders"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Group order flow",
+      "item": [
+        {
+          "name": "Create group session (host)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{host_id}}\",\n  \"display_name\": \"Alice\"\n}"
+            },
+            "url": "{{base_url}}/group-sessions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('join_code', data.join_code);",
+                  "pm.test('host has a display name', () => {",
+                  "  pm.expect(data.host_display_name).to.eql('Alice');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Join group session (participant)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{participant_id}}\",\n  \"display_name\": \"Bob\"\n}"
+            },
+            "url": "{{base_url}}/group-sessions/{{join_code}}/join"
+          }
+        },
+        {
+          "name": "Join group session (2nd participant)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{participant2_id}}\",\n  \"display_name\": \"Carol\"\n}"
+            },
+            "url": "{{base_url}}/group-sessions/{{join_code}}/join"
+          }
+        },
+        {
+          "name": "Get group session state",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/group-sessions/{{join_code}}"
+          }
+        },
+        {
+          "name": "Get participants",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/group-sessions/{{join_code}}/participants"
+          }
+        },
+        {
+          "name": "Add item to group cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{participant_id}}\",\n  \"productId\": \"{{product_id}}\",\n  \"qty\": 2\n}"
+            },
+            "url": "{{base_url}}/group-sessions/{{join_code}}/cart"
+          }
+        },
+        {
+          "name": "Get group cart",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/group-sessions/{{join_code}}/cart"
+          }
+        },
+        {
+          "name": "Update group cart item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{participant_id}}\",\n  \"qty\": 3\n}"
+            },
+            "url": "{{base_url}}/group-sessions/{{join_code}}/cart/{{product_id}}"
+          }
+        },
+        {
+          "name": "Toggle participant ready (Bob)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ready\": true\n}"
+            },
+            "url": "{{base_url}}/group-sessions/{{join_code}}/participants/{{participant_id}}/ready"
+          }
+        },
+        {
+          "name": "Toggle participant ready (Carol)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ready\": true\n}"
+            },
+            "url": "{{base_url}}/group-sessions/{{join_code}}/participants/{{participant2_id}}/ready"
+          }
+        },
+        {
+          "name": "Remove participant (host kicks Carol \u2014 run before placing order)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/group-sessions/{{join_code}}/participants/{{participant2_id}}?userId={{host_id}}",
+            "description": "Host-only. Removes Carol from the session. Anything she added to the shared cart is removed with her and its reserved stock is released back to the product.\n\nNot part of the happy path \u2014 running it means the group order below goes out with Bob only, and Carol's ready toggle above no longer applies. Skip it for a straight run through the folder."
+          }
+        },
+        {
+          "name": "Place group order (host)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{host_id}}\"\n}"
+            },
+            "url": "{{base_url}}/group-sessions/{{join_code}}/order"
+          }
+        },
+        {
+          "name": "Get host group order log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/users/{{host_id}}/group-orders",
+            "description": "Every group order this user hosted, newest first, with a per-person breakdown of who ordered what and what each owes.\n\nRun after 'Place group order (host)'. Swap {{host_id}} for {{participant_id}} to confirm a participant's log is empty \u2014 they joined those sessions, they did not host them."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const orders = pm.response.json().data;",
+                  "pm.test('log is not empty', () => pm.expect(orders).to.be.an('array').that.is.not.empty);",
+                  "pm.test('every order was hosted by this user', () => {",
+                  "  orders.forEach(o => pm.expect(o.host.user._id).to.eql(pm.collectionVariables.get('host_id')));",
+                  "});",
+                  "pm.test('breakdown sums to the order total', () => {",
+                  "  orders.forEach(o => {",
+                  "    const sum = o.breakdown.reduce((t, r) => t + r.amount, 0);",
+                  "    pm.expect(sum).to.eql(o.order_amt);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove group cart item (example, run before placing order)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/group-sessions/{{join_code}}/cart/{{product_id}}?userId={{participant_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

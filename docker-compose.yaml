@@ -1,0 +1,32 @@
+services:
+  backend:
+    image: inminutes_backend:latest
+    container_name: inminutes_backend_cont
+    ports:
+      - "3000:3000"
+    networks:
+      - inminutes_network
+    env_file:
+      - .env.docker
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:8
+    container_name: inminutes_mongo
+    env_file:
+      - .env.docker
+    ports:
+      - "27018:27017"
+    networks:
+      - inminutes_network
+    volumes:
+      - inminutes_db:/data/db
+
+networks:
+  inminutes_network:
+    external: true
+
+volumes:
+  inminutes_db:
+    external: true
