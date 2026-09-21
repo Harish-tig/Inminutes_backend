@@ -8,6 +8,8 @@ having the host check out for everyone.
 Built with Express, MongoDB and socket.io. Designed to be consumed by a Flutter
 client (built separately).
 
+**Video explanation:** [Google Drive folder](https://drive.google.com/drive/folders/158nOjjJBHRdd0bSsUn8BJfhNo65O_Jn_?usp=drive_link)
+
 ---
 
 ## Contents
