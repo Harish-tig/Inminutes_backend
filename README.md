@@ -13,7 +13,7 @@ client (built separately).
 ## Contents
 
 - [What it does](#what-it-does)
-- [Tech stack](#tech-stack)
+- [Packages](#packages)
 - [Getting started](#getting-started)
   - [Run locally](#run-locally)
   - [Run with Docker](#run-with-docker)
@@ -65,16 +65,22 @@ client (built separately).
 
 ---
 
-## Tech stack
+## Packages
 
-| | |
+Runs on Node.js 22, against MongoDB (`mongo:7` in Docker Compose).
+
+| Package | Use case |
 |---|---|
-| Runtime | Node.js 22 |
-| Web framework | Express 5 |
-| Database | MongoDB (Mongoose 9, mongo:7 in Docker Compose) |
-| Real-time | socket.io 4 |
-| Validation | Zod 4 |
-| Auth | none, see [Authentication](#authentication) |
+| **express** 5 | Web framework — routing and HTTP handling for the REST API |
+| **mongoose** 9 | MongoDB object modeling; defines schemas and talks to the database |
+| **socket.io** 4 | Pushes live `group:state` updates to everyone in a group session |
+| **zod** 4 | Validates every incoming request body before it reaches a controller |
+| **cors** | Allows the Flutter client, a different origin, to call this API |
+| **dotenv** | Loads `.env` into `process.env` on startup |
+| **nodemon** *(dev)* | Restarts the server automatically while developing |
+| **socket.io-client** *(dev)* | Used by `npm run watch-group` to connect and print live broadcasts |
+
+Auth: none, see [Authentication](#authentication).
 
 ---
 
@@ -262,40 +268,15 @@ drift, not oversell.
 
 ### Media storage
 
-Product images live in **Cloudinary**; this backend stores and hands out URLs
-only. There is no upload endpoint and no image bytes pass through the server;
-clients render `product.image_urls[n]` straight from the CDN.
+**Cloudinary** was added to handle product image hosting; this backend only
+stores and hands out URLs, no image bytes pass through the server. The images
+referenced in the seed data were uploaded manually to the author's own
+Cloudinary account, so those URLs won't resolve on your end unless you set up
+your own account and upload matching assets.
 
-Every URL is assembled from environment variables, so switching Cloudinary
-accounts (or pointing at a stub in CI) is a `.env` change rather than a code
-change:
-
-```
-<CLOUDINARY_BASE_URL>/<CLOUD_NAME>/image/upload/<transform>/[<FOLDER>/]<product-slug>.<FORMAT>
-```
-
-`image_urls[0]` is the square thumbnail for list views and `image_urls[1]` is
-the larger detail image; the two differ only by the transform segment. The slug
-comes from the product name (`"Gulab Jamun (2 pc)"` -> `gulab-jamun-2-pc`), which
-must also be the asset's `public_id` in Cloudinary.
-
-**`CLOUDINARY_FOLDER` defaults to empty, and that's usually correct.** Most
-Cloudinary accounts default to Dynamic Folders, where the folder shown in the
-console is organizational metadata only, not part of the `public_id`, so
-delivery URLs need no folder segment even if you uploaded into a folder there.
-Only set `CLOUDINARY_FOLDER` if your account uses the older Fixed/Rigid folder
-mode, where the folder really is baked into the `public_id`. If unsure, upload
-one asset and check its `public_id` in the console.
-
-`npm run seed` generates the URLs. With `CLOUDINARY_CLOUD_NAME` unset it seeds
-products with an empty `image_urls` and says so, so the app runs fine without
-media configured. Point it at a real account, upload each asset under the
-public id matching a product's slug, and the URL resolves immediately, no
-redeploy needed. Any product you haven't uploaded yet 404s; clients should
-handle that the same way they handle an empty `image_urls`.
-
-The full variable list is in
-[apidocs.md](apidocs.md#media-storage-cloudinary).
+Leave `CLOUDINARY_CLOUD_NAME` empty in `.env` to run without images; products
+then come back with `image_urls: []` and the app works fine otherwise. The
+full variable list is in [apidocs.md](apidocs.md#media-storage-cloudinary).
 
 ### Real-time sync
 
