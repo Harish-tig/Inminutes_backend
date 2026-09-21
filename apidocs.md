@@ -8,7 +8,28 @@ REST + WebSocket API for the inminutes collaborative food ordering backend.
 
 ---
 
-## Authentication — intentionally not implemented
+## Contents
+
+- [Authentication (not implemented)](#authentication-not-implemented)
+- [Response conventions](#response-conventions)
+- [Shared object shapes](#shared-object-shapes)
+  - [Product](#product)
+  - [Group state](#group-state)
+  - [Order](#order)
+- [Users](#users)
+- [Products](#products)
+- [Media storage (Cloudinary)](#media-storage-cloudinary)
+- [Normal cart](#normal-cart)
+- [Normal orders](#normal-orders)
+  - [Host group order log](#host-group-order-log)
+- [Group sessions](#group-sessions)
+- [Group cart](#group-cart)
+- [WebSocket API](#websocket-api)
+- [Quick end-to-end example](#quick-end-to-end-example)
+
+---
+
+## Authentication (not implemented)
 
 **This prototype performs no authentication and no authorization.** There is no
 login, no password, no token, no session cookie.
@@ -16,7 +37,7 @@ login, no password, no token, no session cookie.
 How identity works instead:
 
 1. `POST /api/users` creates a user and returns its MongoDB `_id`.
-2. The client stores that id and sends it back on every subsequent request —
+2. The client stores that id and sends it back on every subsequent request,
    either as a URL path parameter (`/api/users/:userId/cart`) or as a `userId`
    field in the request body/query string.
 3. The server **trusts that id completely**. It does not verify that the caller
@@ -25,9 +46,9 @@ How identity works instead:
 This means anyone who knows a user's id can act as that user, and anyone who
 knows a join code can read that group session. The only checks the server makes
 are *membership* checks (is this userId the host / a participant of this
-session?) — not *identity* checks.
+session?), not *identity* checks.
 
-Three endpoints are **host-only** in this sense —
+Three endpoints are **host-only** in this sense:
 [remove a participant](#remove-a-participant-host-only),
 [place the group order](#place-group-order) and the
 [host group order log](#host-group-order-log). Each compares the caller-supplied
@@ -97,11 +118,11 @@ resource being modified.
 ```
 
 `qty` is **currently available stock** (stock already reserved by someone's cart
-is not included). `instock` is derived — it is always `qty > 0`.
+is not included). `instock` is derived, it is always `qty > 0`.
 
 `image_urls` is an ordered list of absolute media URLs: **`[0]` is the square
 thumbnail** for list/grid views, **`[1]` is the full-size image** for the detail
-view. Treat it as possibly empty — a deployment with no media storage configured
+view. Treat it as possibly empty; a deployment with no media storage configured
 returns `[]`, so always guard with a placeholder. See
 [Media storage](#media-storage-cloudinary).
 
@@ -151,7 +172,7 @@ the single object a client needs to render the whole group screen.
 ```
 
 > **The same product can appear more than once**, once per member who ordered
-> it — above, Bob wants 2 and Alice wants 1, so 3 are on order. Group the array
+> it, above, Bob wants 2 and Alice wants 1, so 3 are on order. Group the array
 > by `added_by` to show each person's basket, and sum by `product._id` for the
 > quantity of a dish. `cart.length` is a count of *lines*, not of dishes.
 
@@ -160,7 +181,7 @@ the single object a client needs to render the whole group screen.
 > with the same component it uses for participants. The host is still *not* in
 > the `participants` array.
 
-> **Careful — two different `qty` fields.** Inside a cart entry,
+> **Careful: two different `qty` fields.** Inside a cart entry,
 > `cart[].qty` is *how many units are in the group cart*, while
 > `cart[].product.qty` is *how much stock is still available to add*. Use
 > `product.qty` / `product.instock` to decide whether to grey out an
@@ -207,7 +228,7 @@ the single object a client needs to render the whole group screen.
 - `products[]` has **one entry per cart line**, so a dish two people ordered
   appears twice, once for each of them. That is what makes the per-person
   breakdown possible.
-- `products[]` is a **snapshot** — `name`, `price` and `added_by_name` are copied
+- `products[]` is a **snapshot**: `name`, `price` and `added_by_name` are copied
   at order time so the order stays accurate even if the product changes, the
   session's display names change, or either is deleted later.
 - `added_by` / `added_by_name` identify who put that line in the **group** cart.
@@ -238,13 +259,13 @@ the single object a client needs to render the whole group screen.
 |-------|------|-------|
 | `username` | string | required, min 6 characters, must be unique |
 
-**201 Created** — note the unwrapped shape:
+**201 Created**: note the unwrapped shape:
 
 ```json
 { "id": "6aaea21eb95b1a6bdbcb5429", "name": "alice01" }
 ```
 
-Save that `id` — it is how the client identifies itself on every other call.
+Save that `id`; it is how the client identifies itself on every other call.
 
 **Errors:** `400` validation · `409` `{ "error": "Username already exists" }`
 
@@ -276,7 +297,7 @@ Save that `id` — it is how the client identifies itself on every other call.
 
 `GET /api/users/:userId`
 
-**200 OK** — `{ "data": { ...user } }`
+**200 OK**: `{ "data": { ...user } }`
 
 **Errors:** `400` `{ "mssg": "Invalid user id" }` · `404` `{ "mssg": "User not found" }`
 
@@ -288,7 +309,7 @@ Save that `id` — it is how the client identifies itself on every other call.
 
 `GET /api/products`
 
-**200 OK** — `{ "data": [ ...products ] }`
+**200 OK**: `{ "data": [ ...products ] }`
 
 Returns every product, including out-of-stock ones (`qty: 0`, `instock: false`).
 No pagination.
@@ -297,7 +318,7 @@ No pagination.
 
 `GET /api/products/:productId`
 
-**200 OK** — `{ "data": { ...product } }`
+**200 OK**: `{ "data": { ...product } }`
 
 **Errors:** `400` `{ "mssg": "Invalid product id" }` · `404` `{ "mssg": "Product not found" }`
 
@@ -306,7 +327,7 @@ No pagination.
 # Media storage (Cloudinary)
 
 Product images live in **Cloudinary**, not in this backend. The API stores and
-hands out URLs only — there is no upload endpoint, and no image bytes ever pass
+hands out URLs only; there is no upload endpoint, and no image bytes ever pass
 through the server. A client just renders `product.image_urls[n]` directly.
 
 URLs are built from environment variables, so pointing the app at a different
@@ -321,14 +342,14 @@ non-empty (see the folder note below).
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `CLOUDINARY_CLOUD_NAME` | *(empty)* | Cloudinary account. **Empty disables images entirely** — `image_urls` comes back `[]`. |
+| `CLOUDINARY_CLOUD_NAME` | *(empty)* | Cloudinary account. **Empty disables images entirely**: `image_urls` comes back `[]`. |
 | `CLOUDINARY_BASE_URL` | `https://res.cloudinary.com` | delivery host; override to point at a custom domain or a local stub |
-| `CLOUDINARY_FOLDER` | *(empty)* | see below — leave empty unless your account needs it |
+| `CLOUDINARY_FOLDER` | *(empty)* | see below; leave empty unless your account needs it |
 | `CLOUDINARY_IMAGE_FORMAT` | `jpg` | file extension in the URL |
 | `CLOUDINARY_THUMB_TRANSFORM` | `c_fill,w_400,h_400,q_auto,f_auto` | transform for `image_urls[0]` (square thumbnail) |
 | `CLOUDINARY_FULL_TRANSFORM` | `c_fill,w_1200,h_800,q_auto,f_auto` | transform for `image_urls[1]` (detail view) |
 
-The `<product-slug>` is derived from the product name — lowercased with every
+The `<product-slug>` is derived from the product name, lowercased with every
 run of non-alphanumeric characters collapsed to a single `-`. So
 `"Gulab Jamun (2 pc)"` becomes `gulab-jamun-2-pc`, and the asset must be stored
 in Cloudinary under that public id.
@@ -339,20 +360,20 @@ in Cloudinary under that public id.
 Seeded 17 products (17 with image URLs)
 ```
 
-> **About `CLOUDINARY_FOLDER` — leave it empty unless you know you need it.**
+> **About `CLOUDINARY_FOLDER`: leave it empty unless you know you need it.**
 > Most Cloudinary accounts now default to **Dynamic Folders**, where the folder
-> shown in the console is display metadata only — it is *not* part of the
+> shown in the console is display metadata only, it is *not* part of the
 > asset's `public_id`. Uploading an image into a `products/` folder in the
 > console still delivers at `.../image/upload/<transform>/<product-slug>.jpg`,
 > with no folder segment; including one in the URL 404s. Only set
 > `CLOUDINARY_FOLDER` if your account uses the older Fixed/Rigid folder mode,
 > where the folder really is baked into the `public_id`. If in doubt, upload
-> one asset, open it in the console, and check its **public_id** field — that's
+> one asset, open it in the console, and check its **public_id** field, that's
 > the exact string this code needs to reproduce.
 
 > `.env.example` ships with `CLOUDINARY_CLOUD_NAME` empty, so a fresh checkout
 > has no images until you point it at a real account. Once you upload an asset
-> under the public id matching a product's slug, its URL resolves immediately —
+> under the public id matching a product's slug, its URL resolves immediately;
 > no code change or redeploy needed. Until then (or for any product you haven't
 > uploaded yet), that URL 404s, so clients must handle a broken image the same
 > way they handle an empty `image_urls`.
@@ -362,14 +383,14 @@ Seeded 17 products (17 with image URLs)
 # Normal cart
 
 The personal cart used for non-group ordering. **Adding to the cart immediately
-reserves stock** — it is not reserved at checkout. See
+reserves stock**; it is not reserved at checkout. See
 [README](README.md#inventory-model) for why.
 
 ## Get cart
 
 `GET /api/users/:userId/cart`
 
-**200 OK** — cart entries with the product **populated**:
+**200 OK**: cart entries with the product **populated**:
 
 ```json
 {
@@ -415,7 +436,7 @@ reserves stock** — it is not reserved at checkout. See
 | `productId` | string | required, 24-char hex ObjectId |
 | `qty` | number | required, integer, min 1 |
 
-**201 Created** — the updated cart, product **not** populated here:
+**201 Created**: the updated cart, product **not** populated here:
 
 ```json
 {
@@ -448,7 +469,7 @@ reserves stock** — it is not reserved at checkout. See
 releases the difference automatically (going from 2 to 5 reserves 3 more; going
 from 5 to 1 releases 4).
 
-**200 OK** — the single updated cart entry:
+**200 OK**: the single updated cart entry:
 
 ```json
 { "data": { "product": "6aaea211429680111ea05a1c", "qty": 5, "_id": "6aaea251bec1032d360964d9" } }
@@ -457,7 +478,7 @@ from 5 to 1 releases 4).
 **Errors:** `400` validation/invalid id · `404` `{ "mssg": "User not found" }` ·
 `404` `{ "mssg": "Product not in cart" }` · `409` `{ "mssg": "Insufficient stock" }`
 
-To remove an item, use `DELETE` — `qty: 0` is rejected by validation.
+To remove an item, use `DELETE`; `qty: 0` is rejected by validation.
 
 ---
 
@@ -467,7 +488,7 @@ To remove an item, use `DELETE` — `qty: 0` is rejected by validation.
 
 No request body. Releases all stock reserved by that line.
 
-**200 OK** — the remaining cart: `{ "data": [] }`
+**200 OK**: the remaining cart: `{ "data": [] }`
 
 **Errors:** `400` invalid id · `404` user not found · `404` `{ "mssg": "Product not in cart" }`
 
@@ -479,12 +500,12 @@ No request body. Releases all stock reserved by that line.
 
 `POST /api/users/:userId/orders`
 
-No request body — the order is built from whatever is currently in the user's
+No request body. The order is built from whatever is currently in the user's
 cart. Stock was already reserved when items were added, so placing the order
 does not change `Product.qty`; it snapshots the cart into an Order and empties
 the cart.
 
-**201 Created** — `{ "data": { ...order } }` with `order_type: "normal"`.
+**201 Created**: `{ "data": { ...order } }` with `order_type: "normal"`.
 
 **Errors:** `400` invalid id · `400` `{ "mssg": "Cart is empty" }` · `404` user not found
 
@@ -494,7 +515,7 @@ the cart.
 
 `GET /api/users/:userId/orders`
 
-**200 OK** — `{ "data": [ ...orders ] }`, newest first. Includes both normal
+**200 OK**: `{ "data": [ ...orders ] }`, newest first. Includes both normal
 orders the user placed and group orders they hosted or participated in.
 
 **Errors:** `400` invalid id · `404` user not found
@@ -511,9 +532,9 @@ breakdown of who ordered what.
 **What "host only" means here.** The filter *is* the restriction: an order is
 only ever returned to the user recorded as its host. A participant calling this
 for their own id gets back the sessions they ran, never the ones they merely
-joined — those stay in their normal
+joined; those stay in their normal
 [order history](#get-order-history). Since there is no auth
-([by design](#authentication--intentionally-not-implemented)), anyone who knows
+([by design](#authentication-not-implemented)), anyone who knows
 a host's id can read that host's log; the server cannot tell callers apart. What
 it *can* guarantee is that being a participant never gets you the host's view.
 
@@ -569,11 +590,11 @@ it *can* guarantee is that being a participant never gets you the host's view.
 | Field | Meaning |
 |-------|---------|
 | `join_code` | the session this order came out of |
-| `host` | `{ user, display_name }` — same shape as in [group state](#group-state) |
+| `host` | `{ user, display_name }`, same shape as in [group state](#group-state) |
 | `members` | the participants, with the display names they used in that session |
 | `products[].line_amt` | `price × qty`, precomputed |
 | `products[].added_by` | who put this line in the shared cart (populated user) |
-| `breakdown` | one row per person — **what each of them owes** |
+| `breakdown` | one row per person: **what each of them owes** |
 
 **About `breakdown`.** This is the point of the log: it answers "who owes what"
 without the client having to group the lines itself.
@@ -586,7 +607,7 @@ without the client having to group the lines itself.
   so their lines collect in a single extra row with
   `"user": null, "display_name": null`. That row keeps the sum property true.
 
-Group orders only — normal orders never appear here, whatever the user's role.
+Group orders only; normal orders never appear here, whatever the user's role.
 
 **Errors:** `400` `{ "mssg": "Invalid user id" }` · `404` `{ "mssg": "User not found" }`
 
@@ -608,7 +629,7 @@ a `404`.
 | Field | Type | Rules |
 |-------|------|-------|
 | `userId` | string | required, 24-char hex ObjectId |
-| `display_name` | string | **optional**, 1–30 characters — the name the group sees for the host. Defaults to the host's `username` when omitted. |
+| `display_name` | string | **optional**, 1–30 characters, the name the group sees for the host. Defaults to the host's `username` when omitted. |
 
 The caller becomes the **host**. A unique 8-character uppercase-alphanumeric
 join code is generated.
@@ -627,7 +648,7 @@ join code is generated.
 
 `GET /api/group-sessions/:joinCode`
 
-**200 OK** — `{ "data": { ...group state } }`. Works for inactive (already
+**200 OK**: `{ "data": { ...group state } }`. Works for inactive (already
 ordered) sessions too, so a client can still display a completed order.
 
 **Errors:** `404` `{ "mssg": "Group session not found" }`
@@ -645,11 +666,11 @@ ordered) sessions too, so a client can still display a completed order.
 | Field | Type | Rules |
 |-------|------|-------|
 | `userId` | string | required, 24-char hex ObjectId |
-| `display_name` | string | required, 1–30 characters, unique within the session — **including the host's own display name** |
+| `display_name` | string | required, 1–30 characters, unique within the session, **including the host's own display name** |
 
 New participants always start with `ready: false`.
 
-**200 OK** — `{ "data": { ...group state } }`. Also broadcasts `group:state` to
+**200 OK**: `{ "data": { ...group state } }`. Also broadcasts `group:state` to
 everyone already connected to the session.
 
 **Errors:**
@@ -669,7 +690,7 @@ everyone already connected to the session.
 
 `GET /api/group-sessions/:joinCode/participants`
 
-**200 OK** — just the `participants` array from the group state.
+**200 OK**: just the `participants` array from the group state.
 
 **Errors:** `404` `{ "mssg": "Group session not found" }`
 
@@ -687,13 +708,13 @@ everyone already connected to the session.
 |-------|------|-------|
 | `ready` | boolean | required |
 
-A client is expected to only call this with its own `userId` — there is no auth
-to enforce it (see [Authentication](#authentication--intentionally-not-implemented)).
+A client is expected to only call this with its own `userId`; there is no auth
+to enforce it (see [Authentication](#authentication-not-implemented)).
 
 **The host has no ready status.** The host can never be a participant, so
 "everyone is ready" only ever refers to the `participants` array.
 
-**200 OK** — `{ "data": { ...group state } }`, broadcast to the session.
+**200 OK**: `{ "data": { ...group state } }`, broadcast to the session.
 
 **Errors:** `400` invalid id or non-boolean `ready` · `404` `{ "mssg": "Active group session not found" }` ·
 `404` `{ "mssg": "User is not a participant of this session" }`
@@ -709,27 +730,27 @@ Kicks a member out of the session. Only the **host** may call this.
 | Parameter | In | Rules |
 |-----------|-----|-------|
 | `participantId` | path | the participant being removed, 24-char hex ObjectId |
-| `userId` | query | the caller — must be the session's host |
+| `userId` | query | the caller, must be the session's host |
 
 **What happens to their cart items.** Every group-cart line that participant
 added is removed, and the stock it was holding is released back to the product.
 A kicked member therefore never leaves stock locked up in a cart they can no
-longer edit. Lines other members added are untouched — `added_by` records who
+longer edit. Lines other members added are untouched; `added_by` records who
 first added a line and is never reassigned, including when someone else changes
 the quantity with `PATCH`, so a kick only ever drops lines that member actually
 added.
 
 Removing an un-ready participant also unblocks
-[placing the order](#place-group-order) — "everyone is ready" is evaluated over
+[placing the order](#place-group-order); "everyone is ready" is evaluated over
 whoever is still in the session.
 
-**200 OK** — `{ "data": { ...group state } }`.
+**200 OK**: `{ "data": { ...group state } }`.
 
 Two WebSocket events go out to the room, in order:
 
-1. `group:participant_removed` — `{ join_code, user, display_name }`, so the
+1. `group:participant_removed`: `{ join_code, user, display_name }`, so the
    removed member's client can show "you were removed" and leave the screen.
-2. `group:state` — the refreshed state for everyone else.
+2. `group:state`: the refreshed state for everyone else.
 
 **Errors:**
 
@@ -742,7 +763,7 @@ Two WebSocket events go out to the room, in order:
 | `404` | `{ "mssg": "Active group session not found" }` | bad join code, or the order was already placed |
 | `404` | `{ "mssg": "User is not a participant of this session" }` | that user is not (or is no longer) in the session |
 
-A removed member can simply join again with the same join code — nothing bans
+A removed member can simply join again with the same join code; nothing bans
 them. Closing a session to a kicked member would need auth, which this prototype
 deliberately does not have.
 
@@ -761,7 +782,7 @@ for `POST`/`PATCH` and in the **query string** for `DELETE`.
 each get their own line, so the cart records *who wants how many* rather than a
 single shared number. The total ordered for a product is the sum of its lines.
 
-A second `POST` for a product **you** already added is rejected — use `PATCH` to
+A second `POST` for a product **you** already added is rejected; use `PATCH` to
 change your own quantity. A `POST` for a product someone *else* added is
 accepted and creates your line beside theirs.
 
@@ -773,7 +794,7 @@ another member ordered.
 
 `GET /api/group-sessions/:joinCode/cart`
 
-**200 OK** — just the `cart` array from the group state.
+**200 OK**: just the `cart` array from the group state.
 
 **Errors:** `404` `{ "mssg": "Group session not found" }`
 
@@ -797,7 +818,7 @@ another member ordered.
 | `productId` | string | required, 24-char hex ObjectId |
 | `qty` | number | required, integer, min 1 |
 
-**201 Created** — `{ "data": { ...group state } }`, broadcast to the session.
+**201 Created**: `{ "data": { ...group state } }`, broadcast to the session.
 
 **Errors:**
 
@@ -806,7 +827,7 @@ another member ordered.
 | `400` | `{ "errors": [...] }` | validation failure |
 | `403` | `{ "mssg": "User is not part of this group session" }` | caller is neither host nor participant |
 | `404` | `{ "mssg": "Active group session not found" }` | bad code, or order already placed |
-| `409` | `{ "mssg": "You already added this item, use PATCH to change your quantity" }` | **you** already have a line for this product — someone else having one is fine |
+| `409` | `{ "mssg": "You already added this item, use PATCH to change your quantity" }` | **you** already have a line for this product; someone else having one is fine |
 | `409` | `{ "mssg": "Insufficient stock" }` | fewer than `qty` units available |
 
 ---
@@ -821,9 +842,9 @@ another member ordered.
 
 `qty` is the absolute new quantity **of the caller's own line**; the difference
 is reserved or released automatically. `added_by` is never changed, and a member
-cannot change a line somebody else added — that returns `404`.
+cannot change a line somebody else added; that returns `404`.
 
-**200 OK** — `{ "data": { ...group state } }`, broadcast to the session.
+**200 OK**: `{ "data": { ...group state } }`, broadcast to the session.
 
 **Errors:** `400` validation · `403` not a member · `404` active session not found ·
 `404` `{ "mssg": "You have not added this item to the group cart" }` ·
@@ -840,7 +861,7 @@ caller's own line** for that product and releases the stock it held, making it
 immediately available to everyone else. Other members' lines for the same
 product are untouched.
 
-**200 OK** — `{ "data": { ...group state } }`, broadcast to the session.
+**200 OK**: `{ "data": { ...group state } }`, broadcast to the session.
 
 **Errors:** `400` missing/invalid `userId` query param · `403` not a member ·
 `404` active session not found ·
@@ -872,7 +893,7 @@ The snapshot also records **who added each line** (`added_by` / `added_by_name`)
 and the session's `join_code`, display names included, which is what makes the
 [host group order log](#host-group-order-log) work after the session is closed.
 
-**201 Created** — `{ "data": { ...order } }` with `order_type: "group"`. A final
+**201 Created**: `{ "data": { ...order } }` with `order_type: "group"`. A final
 `group:state` (now `active: false`) is broadcast to the session.
 
 **Errors:**
@@ -924,7 +945,7 @@ socket.on("connect", () => {
 
 ```js
 socket.on("group:state", (state) => {
-  // replace local state wholesale — no diffing needed
+  // replace local state wholesale, no diffing needed
 });
 ```
 
@@ -940,7 +961,7 @@ socket.on("group:state", (state) => {
 - the host places the group order (final broadcast, `active: false`)
 
 Apart from `group:participant_removed` there are no fine-grained events
-(`cart:item_added` etc.) by design — the client simply replaces its local state
+(`cart:item_added` etc.) by design; the client simply replaces its local state
 with each `group:state` it receives.
 
 ### `group:participant_removed`
@@ -952,9 +973,9 @@ the `group:state` that reflects the removal:
 ```js
 socket.on("group:participant_removed", ({ user, display_name }) => {
   if (user === myUserId) {
-    // you were removed — leave the group screen
+    // you were removed, leave the group screen
   } else {
-    // someone else was removed — optional toast; the group:state that
+    // someone else was removed, optional toast; the group:state that
     // follows already has them gone
   }
 });
@@ -1000,11 +1021,11 @@ curl -s -X PATCH $BASE/group-sessions/$CODE/participants/$GUEST/ready \
 curl -s -X POST $BASE/group-sessions/$CODE/order -H 'Content-Type: application/json' \
   -d "{\"userId\":\"$HOST\"}"
 
-# (Before step 7, the host could instead kick the guest out — their cart lines
+# (Before step 7, the host could instead kick the guest out; their cart lines
 #  are dropped and the stock they held is released back to the product.)
 # curl -s -X DELETE "$BASE/group-sessions/$CODE/participants/$GUEST?userId=$HOST"
 
-# 8. Host reviews their group order log — who ordered what, and who owes what
+# 8. Host reviews their group order log: who ordered what, and who owes what
 curl -s $BASE/users/$HOST/group-orders | jq '.data[0].breakdown'
 
 # The guest hosted nothing, so their log is empty (they see the order in
@@ -1013,5 +1034,5 @@ curl -s $BASE/users/$GUEST/group-orders | jq '.data'
 ```
 
 A ready-made Postman collection covering every endpoint above is in
-[postman_collection.json](postman_collection.json) — it chains ids between
+[postman_collection.json](postman_collection.json); it chains ids between
 requests automatically.

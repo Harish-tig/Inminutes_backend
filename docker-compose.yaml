@@ -1,6 +1,6 @@
 services:
   backend:
-    image: inminutes_backend:latest
+    image: harishsdockdom/inminutes_backend:latest
     container_name: inminutes_backend_cont
     ports:
       - "3000:3000"
@@ -12,7 +12,7 @@ services:
       - mongo
 
   mongo:
-    image: mongo:8
+    image: mongo:7
     container_name: inminutes_mongo
     env_file:
       - .env.docker

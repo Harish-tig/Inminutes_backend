@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "inminutes_backend",
-    "description": "Run requests top to bottom inside a folder \u2014 each one saves the ids it creates into collection variables (host_id, participant_id, join_code, product_id) that later requests reuse.",
+    "description": "Run requests top to bottom inside a folder. Each one saves the ids it creates into collection variables (host_id, participant_id, join_code, product_id) that later requests reuse.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -123,6 +123,13 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/users/{{host_id}}"
+          }
+        },
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/users"
           }
         },
         {
@@ -394,12 +401,12 @@
           }
         },
         {
-          "name": "Remove participant (host kicks Carol \u2014 run before placing order)",
+          "name": "Remove participant (host kicks Carol, run before placing order)",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": "{{base_url}}/group-sessions/{{join_code}}/participants/{{participant2_id}}?userId={{host_id}}",
-            "description": "Host-only. Removes Carol from the session. Anything she added to the shared cart is removed with her and its reserved stock is released back to the product.\n\nNot part of the happy path \u2014 running it means the group order below goes out with Bob only, and Carol's ready toggle above no longer applies. Skip it for a straight run through the folder."
+            "description": "Host-only. Removes Carol from the session. Anything she added to the shared cart is removed with her and its reserved stock is released back to the product.\n\nNot part of the happy path: running it means the group order below goes out with Bob only, and Carol's ready toggle above no longer applies. Skip it for a straight run through the folder."
           }
         },
         {
@@ -425,7 +432,7 @@
             "method": "GET",
             "header": [],
             "url": "{{base_url}}/users/{{host_id}}/group-orders",
-            "description": "Every group order this user hosted, newest first, with a per-person breakdown of who ordered what and what each owes.\n\nRun after 'Place group order (host)'. Swap {{host_id}} for {{participant_id}} to confirm a participant's log is empty \u2014 they joined those sessions, they did not host them."
+            "description": "Every group order this user hosted, newest first, with a per-person breakdown of who ordered what and what each owes.\n\nRun after 'Place group order (host)'. Swap {{host_id}} for {{participant_id}} to confirm a participant's log is empty: they joined those sessions, they did not host them."
           },
           "event": [
             {

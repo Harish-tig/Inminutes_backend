@@ -17,18 +17,10 @@ function generateJoinCode() {
 
 const isValidObjectId = (id) => mongoose.isValidObjectId(id);
 
-// --- Media storage (Cloudinary) ---------------------------------------------
+// Media storage (Cloudinary) 
 // The backend never uploads anything; it only stores and hands out URLs. All of
-// the storage config lives in .env so the same code points at a different
-// Cloudinary account (or a local stub) without a code change.
 const CLOUDINARY_BASE_URL = process.env.CLOUDINARY_BASE_URL || "https://res.cloudinary.com";
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
-// Empty by default: most Cloudinary accounts now use Dynamic Folders, where the
-// folder shown in the console is display metadata only and is NOT part of the
-// public_id used in delivery URLs — so the default delivery path is just
-// <public_id>.<format>, no folder prefix. Only set this if your account uses
-// the older Fixed/Rigid folder mode, where the folder really is baked into the
-// public_id and delivery 404s without it.
 const CLOUDINARY_FOLDER = process.env.CLOUDINARY_FOLDER || "";
 const CLOUDINARY_FORMAT = process.env.CLOUDINARY_IMAGE_FORMAT || "jpg";
 // Named Cloudinary transformations, applied as a URL path segment.
