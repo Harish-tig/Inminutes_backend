@@ -1,6 +1,6 @@
 services:
   backend:
-    image: harishsdockdom/inminutes_backend:latest
+    image: harishsdockdom/inminutes_backend:v1.0
     container_name: inminutes_backend_cont
     ports:
       - "3000:3000"
